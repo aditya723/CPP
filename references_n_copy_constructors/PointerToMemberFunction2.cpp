@@ -11,14 +11,14 @@ class Widget {
         void (Widget::*fp[cnt])(int)const;
         public:
         Widget() {
-                fp[0] = &Widget::f;
-                fp[1] = &Widget::g;
+                fp[0] = &Widget::f; // Should confer to the pointer to member syntax
+                fp[1] = &Widget::g; // fp[1] = &g should not work even though it is a member function
                 fp[2] = &Widget::h;
                 fp[3] = &Widget::i;
         }
         void select(int i, int j) {
                 if (i < 0 || i >= cnt) return;
-                (this->*fp[i])(j);
+                (this->*fp[i])(j); // this is necessary here as the syntax requires that pointer to member always bound to an object when it is dereferenced
         }
         int count() {return cnt;};
 };
