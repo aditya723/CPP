@@ -19,6 +19,8 @@ Following chapters has been done
 
 5. Hiding the Implementation 
 
+6. Initialization and Cleanup
+
 11. Reference & the Copy-Constructor
 
 ============================================== Phase 1 ========================================================
