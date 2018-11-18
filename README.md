@@ -25,6 +25,8 @@ Following chapters has been done
 
 8. Constant
 
+9. Inline Functions
+
 11. Reference & the Copy-Constructor
 
 ============================================== Phase 1 ========================================================

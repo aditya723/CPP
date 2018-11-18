@@ -1,0 +1,3 @@
+touch temp
+g++ -I. ErrTest.cpp
+./a.out
