@@ -21,6 +21,8 @@ Following chapters has been done
 
 6. Initialization and Cleanup
 
+7. Function overloading and default arguments
+
 11. Reference & the Copy-Constructor
 
 ============================================== Phase 1 ========================================================
