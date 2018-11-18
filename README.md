@@ -23,6 +23,8 @@ Following chapters has been done
 
 7. Function overloading and default arguments
 
+8. Constant
+
 11. Reference & the Copy-Constructor
 
 ============================================== Phase 1 ========================================================
