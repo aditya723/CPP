@@ -27,6 +27,8 @@ Following chapters has been done
 
 9. Inline Functions
 
+10. Name control
+
 11. Reference & the Copy-Constructor
 
 ============================================== Phase 1 ========================================================

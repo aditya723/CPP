@@ -1,0 +1,72 @@
+======================================================================
+//: NamespaceInt.h
+#ifndef NAMESPACEINT_H
+#define NAMESPACEINT_H
+namespace Int {
+  enum sign { positive, negative };
+  class Integer {
+int i;
+    sign s;
+  public:
+    Integer(int ii = 0)
+      : i(ii),
+        s(i >= 0 ? positive : negative)
+    {}
+    sign getSign() const { return s; }
+    void setSign(sign sgn) { s = sgn; }
+    // ...
+};
+}
+#endif // NAMESPACEINT_H ///:~
+======================================================================
+
+
+NamespaceMath.h
+#ifndef NAMESPACEMATH_H
+#define NAMESPACEMATH_H
+#include "NamespaceInt.h"
+namespace Math {
+  using namespace Int; -----------------------> exported namespace Int, now all namespace member can be used with unqualified names
+  Integer a, b; // can be used as unqualified names
+  Integer divide(Integer, Integer);
+  // ...
+}
+#endif // NAMESPACEMATH_H ///:~
+
+====================================================================
+
+
+NamespaceOverriding1.cpp
+#include "NamespaceMath.h"
+int main() {
+  using namespace Math;
+  Integer a; // ----------------------------------->  Hides Math::a;
+  a.setSign(negative);
+  // Now scope resolution is necessary to select Math::a :
+  Math::a.setSign(positive);
+} ///:~
+
+
+======================================================================
+
+NamespaceOverriding2.h
+#ifndef NAMESPACEOVERRIDING2_H
+#define NAMESPACEOVERRIDING2_H
+#include "NamespaceInt.h"
+namespace Calculation {
+  using namespace Int;
+  Integer divide(Integer, Integer);
+  // ...
+}
+
+============================================================
+OverridingAmbiguity.cpp
+#include "NamespaceMath.h"
+#include "NamespaceOverriding2.h"
+void s() {
+  using namespace Math;
+  using namespace Calculation;
+  // Everything's ok until:
+  //! divide(1, 2); // Ambiguity
+}
+int main() {} ///:~
