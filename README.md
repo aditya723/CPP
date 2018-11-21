@@ -31,4 +31,6 @@ Following chapters has been done
 
 11. Reference & the Copy-Constructor
 
+13. Dynamic object creation
+
 ============================================== Phase 1 ========================================================
