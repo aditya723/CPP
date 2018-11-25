@@ -13,7 +13,7 @@ Following chapters has been done
 2. Making & Using Objects
 
 3. the c in c++
-        Pending: type case and Makefile
+        Pending: type cast and Makefile
 
 4. Data Abstraction
 
@@ -32,5 +32,7 @@ Following chapters has been done
 11. Reference & the Copy-Constructor
 
 13. Dynamic object creation
+
+15. Polymorphism and Virtual Functions
 
 ============================================== Phase 1 ========================================================
