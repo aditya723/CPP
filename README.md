@@ -35,4 +35,5 @@ Following chapters has been done
 
 15. Polymorphism and Virtual Functions
 
+16. Introduction to Templates
 ============================================== Phase 1 ========================================================
