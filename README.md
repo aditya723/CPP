@@ -33,7 +33,10 @@ Following chapters has been done
 
 13. Dynamic object creation
 
+14. Inheritance and Composition
+
 15. Polymorphism and Virtual Functions
 
 16. Introduction to Templates
+
 ============================================== Phase 1 ========================================================
