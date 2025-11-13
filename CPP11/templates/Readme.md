@@ -1,5 +1,12 @@
 # Template #
 - Templates allow using types(built-in and non built-in) as parameters. The type must support the operations that the template actually uses.
+```cpp
+template <typename T>
+auto display(const T& a) {
+ std::cout << a << std::endl;
+}
+```
+-After its introduction, T is used exactly like other type names. The scope of T extends to the end of the declaration prefixed by template<typename T>. In abpve example, T is valid only for display the function. Outside display, T does not exist.
 - Duck typing : If it looks like a duck and quacks like a duck, the template will accept it. In the below example, T and U only need to support the + operator. They don’t need to inherit from each other, or from a common parent.
 
 ```CPP
@@ -52,4 +59,14 @@ Instead, the compiler only checks these requirements when the template is instan
 template <std::integral T> // This forces T to be of type std::integral
 T add(T a, T b) { return a + b; }
 ```
-
+- Using a template can lead to a decrease of code generated because code for a member function of a class template is only generated if that member is used.
+- Templates can also be defined as aliases.This is like creating a shortcut or rename for a template instantiation pattern. Shorter, cleaner, and hides the implementation.
+  ```
+  cpp
+template <typename Key, typename Value>
+using Hash = std::unordered_map<Key, Value>;
+...
+...
+Hash<std::string, int> frequency;
+  ```
+> **💡 TIP:** When designing a class template, it is usually a good idea to debug a particular class, such as `String`, before turning it into a template such as `String<C>`.
