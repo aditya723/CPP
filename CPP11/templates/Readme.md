@@ -6,3 +6,25 @@ template <typename T, typename U>
 auto add(const T& a, const U& b) {
     return a + b;
 }
+- C++ templates allow you to parameterize your code — meaning you can write a class, function, or type alias where some part of it is left unspecified, and can be filled in later with:
+   - A type (e.g., int, std::string, or a user-defined class), or
+   - A value (e.g., an integer constant, a pointer, a reference, a boolean), depending on the template kind.
+
+*Type parameters*
+
+```cpp
+template <typename T> // Here, T is a type parameter.
+class Vector {
+    T* data;
+};
+Vector<int> v1;
+
+*Value (non-type) parameters*
+
+```cpp
+template <int N>
+struct Array {
+    int data[N];
+};
+Array<4> a;
+
