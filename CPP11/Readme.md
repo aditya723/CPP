@@ -457,7 +457,7 @@ Input ... Output ... Effectiveness.
 
 Every standard-library container provides the functions begin() and end(), which return an iterator to the first and to one-past-the-last element, respectively.
 
-## Concurrency and Utilities ##
+### Concurrency and Utilities ###
 
 **Resource Acquisition Is Initialization - RAII**
 
@@ -935,7 +935,7 @@ We use that when all we need is a set of integer constants, rather than a type t
 
 *QUESTION*: Difference between class enum, plain enum and unnamed enums.
 
-## Statements ##
+### Statements ###
 
 - The expression in the case labels of switch must be a constant expression of integral or enumeration type.
 - It is possible, and common, to declare variables within the block of a switch-statement. However, it is not possible to bypass an initialization. For example:
@@ -956,7 +956,7 @@ void f(int i)
 }
 ```
 
-## Expressions ##
+### Expressions ###
 
 The **integral promotions** are:
 • Achar, signed char, unsigned char, short int, or unsigned short int is converted to an int if int can represent all the values of the source type; otherwise, it is converted to an unsigned int.
@@ -1031,10 +1031,10 @@ void operator delete[](void∗ p, const nothrow_t&) noexcept; // deallocate spac
 int∗ p = new(nothrow) int[n]; // allocate n ints on the free store
 ```
 
-### List {} ###
+#### List {} ####
 TBD
 
-### Lambda ###
+#### Lambda ####
 TBD
 
 **Explicit Type Conversion**
@@ -1073,7 +1073,7 @@ c-stype
 Prefer T{v} conversions for well-behaved construction and the named casts (e.g., static_cast) for other conversions.
 
 
-## Function ##
+### Function ###
 
 **Declaration**
 
@@ -1156,6 +1156,7 @@ constexpr const int∗ tp = addr(5); // error : address of temporary
 
 ```
 ### Conditional Evaluation of constexpr ###
+
 A branch of a conditional expression that is not taken in a constexpr function is not evaluated. This implies that a branch not taken can require run-time evaluation.
 
 ```CPP
@@ -1356,7 +1357,7 @@ literal
 `Pragmas` is a preprocessor directive used to give special instructions to the compiler. `#pragma once` Prevents multiple inclusion of a header file.
 -  #pragma message("Compiling module X") , Print compile-time message
 
-## Exception Handling ##
+### Exception Handling ###
 
 - A function that cannot cope with a problem throws an exception, hoping that its (direct or indirect) caller can handle the problem. A function that wants to handle a kind of problem indicates that by catching the corresponding exception. An exception is an object thrown to represent the occurrence of an error.
   • A calling component indicates the kinds of failures that it is willing to handle by specifying those exceptions in a catch-clause of a try-block.
@@ -1564,7 +1565,7 @@ If you want to ensure cleanup when an otherwise uncaught exception happens, you 
 If an exception is not caught on a thread, std::terminate() is called.
 
 
-## Namespaces ##
+### Namespaces ###
 
 We can avoid name clashes by separating sets of declarations (e.g., library interfaces) into namespaces. The members of a namespace are in the same scope and can refer to each other without special notation, whereas access from outside the
 namespace requires explicit notation. A namespace is a (named) scope. A member can be declared within a namespace definition and defined later using the namespacename::member-name notation.
@@ -1709,7 +1710,7 @@ Each file gets its own private counter.
 ```
 - Use unnamed namespace instead of global static.
 
-## Source File and Programs ##
+### Source File and Programs ###
 
 **Linkage**
 
