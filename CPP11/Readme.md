@@ -980,7 +980,7 @@ long int; otherwise, both operands are converted to unsigned long int.
 • Otherwise, if either operand is unsigned, the other is converted to unsigned.
 • Otherwise, both operands are int.
 
-## Select Operation ##
+### Select Operation ###
 
 **Memory Management**
 
