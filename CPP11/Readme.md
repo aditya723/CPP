@@ -1353,11 +1353,488 @@ literal
 • __STDCPP_STRICT_POINTER_SAFETY__: 1 if the implementation has strict pointer safety; otherwise undefined.
 • __STDCPP_THREADS__: 1 if a program can have more than one thread of execution; otherwise undefined.
 
-`Pragmas`
-
+`Pragmas` is a preprocessor directive used to give special instructions to the compiler. `#pragma once` Prevents multiple inclusion of a header file.
+-  #pragma message("Compiling module X") , Print compile-time message
 
 ## Exception Handling ##
 
+- A function that cannot cope with a problem throws an exception, hoping that its (direct or indirect) caller can handle the problem. A function that wants to handle a kind of problem indicates that by catching the corresponding exception. An exception is an object thrown to represent the occurrence of an error.
+  • A calling component indicates the kinds of failures that it is willing to handle by specifying those exceptions in a catch-clause of a try-block.
+  • A called component that cannot complete its assigned task reports its failure to do so by throwing an exception using a throw-expression.
+
+```CPP
+void taskmaster()
+{
+  try {
+    auto result = do_task();
+    // use result
+  }
+  catch (Some_error) {
+    // failure to do_task: handle problem
+  }
+}
+
+int do_task()
+{
+// ...
+  if (/* could perfor m the task */)
+    return result;
+  else
+    throw Some_error{};
+}
+```
+- we call an operation exceptionsafe if that operation leaves the program in a valid state when the operation is terminated by throwing an exception.
+- 
+**terminate and noexcept**
+
+**Finally**
+
+finally() does for a block what the increment part of a for-statement does for the forstatement ; it specifies the final action at the top of a block where it is easy to be seen and where it logically belongs from a specification point of view. It says what is to be done upon exit from a scope, saving the programmer from trying to write code at each of the potentially many places from which the thread of control might exit the scope. People have inv ented ‘‘finally’’ language constructs for writing arbitrary
+code to clean up after an exception.
+
+
+• <cassert>, the standard library provides the assert(A) macro, which checks its assertion, A, at run time if and only if the macro NDEBUG (‘‘not debugging’’) is not defined . If
+the assertion fails, the compiler writes out an error message containing the (failed) assertion, the source file name, and the source file line number and terminates the program.
+• The language provides static_assert(A,message), which unconditionally checks its assertion, A, at compile time (§2.4.3.3). If the assertion fails, the compiler writes out the message and the compilation fails.
+
+**Throwing and Catching Exceptions**
+
+- We can throw an exception of any type that can be copied or moved.
+  ```CPP
+class No_copy {
+  No_copy(const No_copy&) = delete; // prohibit copying (§17.6.4)
+};
+class My_error {
+// ...
+};
+
+void f(int n)
+{
+  switch (n) {
+    case 0: throw My_error{}; // OK
+    case 1: throw No_copy{}; // error : can’t copy a No_copy
+    case 2: throw My_error; // error : My_error is a type, rather than an object
+  }
+}
+```
+
+- A throw x; initializes a temporary variable of x’s type with x. This temporary may be further copied several times before it is caught: the exception is passed (back) from called function to calling function until a suitable handler is found. The type of the exception is used to select a handler in the catch-clause of some try-block.
+- During, stack unwinding, in each scope exited, the destructors are invoked so that every fully constructed object is properly destroyed.
+- There is a small standard-library hierarchy of exception types that can be used either directly or as base classes.
+- Some functions don’t throw exceptions and some really shouldn’t. To indicate that, we can declare such a function noexcept. 
+- It is possible to declare a function to be conditionally noexcept. For example:
+```CPP
+template<typename T>
+void my_fct(T& x) noexcept(Is_pod<T>());
+```
+The noexcept(Is_pod<T>()) means that My_fct may not throw if the predicate Is_pod<T>() is true but may throw if it is false. The noexcept() operator takes an expression as its argument and returns true if the compiler ‘‘knows’’ that it
+cannot throw and false otherwise.
+
+The predicate in a noexcept() specification must be a constant expression. Plain noexcept means noexcept(true).
+
+The noexcept() operator takes an expression as its argument and returns true if the compiler ‘‘knows’’ that it cannot throw and false otherwise. For example:
+```CPP
+template<typename T>
+void call_f(vector<T>& v) noexcept(noexcept(f(v[0]))
+{
+  for (auto x : v)
+    f(x);
+  }
+}
+```
+The double mention of noexcept looks a bit odd, but noexcept is not a common operator. The operand of noexcept() is not evaluated, so in the example we do not get a run-time error if we pass call_f() with an empty vector.
+
+A noexcept(expr) operator does not go to heroic lengths to determine whether expr can throw; it simply looks at every operation in expr and if they all have noexcept specifications that evaluate to
+true, it returns true. A noexcept(expr) does not look inside definitions of operations used in expr. Conditional noexcept specifications and the noexcept() operator are common and important in standard-library operations that apply to containers. For example
+
+```CPP
+template<class T, siz e_t N>
+void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(∗a, ∗b)));
+```
+
+```CPP
+void f(int) throw(Bad,Worse); // may only throw Bad or Worse exceptions
+void g(int) throw(); // may not throw
+```
+An empty exception specification throw() terminates the program.
+
+**Catching Exceptions**
+
+```CPP
+void f()
+{
+  try {
+    throw E{};
+  }
+  catch(H) {
+  // when do we get here?
+  }
+}
+```
+The handler is invoked:
+[1] If H is the same type as E
+[2] If H is an unambiguous public base of E
+[3] If H and E are pointer types and [1] or [2] holds for the types to which they refer
+[4] If H is a reference and [1] or [2] holds for the type to which H refers
+
+In addition, we can add const to the type used to catch an exception in the same way that we can add it to a function parameter.
+The {} in both the try-part and a catch-clause of a try-block are real scopes.
+
+**Rethrow**
+
+A rethrow is indicated by a throw without an operand and rethrow the original exception caught. A rethrow may occur in a catch-clause or in a function called from a catch-clause. If a rethrow is attempted when there is no exception to
+rethrow, std::terminate() will be called. 
+
+```CPP
+catch (std::exception& err) {
+  if (can_handle_it_completely) {
+    // ... handle it ...
+    return;
+  }
+  else {
+    // ... do what can be done here ...
+    throw; // rethrow the exception
+  }
+}
+```
+
+**Catch Every Exception**
+
+```CPP
+catch (...) { // handle every exception
+```
+
+**Multiple Handlers**
+
+A try-block may have multiple catch-clauses (handlers).
+
+```CPP
+void f()
+{
+  try {
+  // ...
+  }
+  catch (std::ios_base::failure) {
+  // ... handle any iostream error (§30.4.1.1) ...
+  }
+  catch (std::exception& e) {
+  // ... handle any standard-librar y exception (§30.4.1.1) ...
+  }
+  catch (...) {
+  // ... handle any other exception (§13.5.2.2) ...
+  }
+}
+```
+- if an exception is thrown in a base-or-member initializer, the exception is passed on to whatever inv oked the constructor for the member’s class. So, we can catch exceptions thrown by member constructors.
+
+**Termination**
+
+- Don’t throw an exception while handling an exception. Don’t throw an exception that can’t be caught.
+
+The specific rules for calling terminate() are :
+  • When no suitable handler was found for a thrown exception
+  • When a noexcept function tries to exit with a throw
+  • When a destructor invoked during stack unwinding tries to exit with a throw
+  • When code invoked to propagate an exception (e.g., a copy constructor) tries to exit with a throw
+  • When someone tries to rethrow (throw;) when there is no current exception being handled
+  • When a destructor for a statically allocated or thread-local object tries to exit with a throw
+  • When an initializer for a statically allocated or thread-local object tries to exit with a throw
+  • When a function invoked as an atexit() function tries to exit with a throw
+In such cases, the function std::terminate() is called.
+
+By default, terminate() will call abort(). This default is the correct choice for most users – especially during debugging. If that is not acceptable, the user can provide a terminate
+handler function by a call std::set_terminate() from <exception>
+
+```CPP
+using terminate_handler = void(∗)(); // from <exception>
+[[noreturn]] void my_handler() // a ter minate handler cannot return
+{
+  // handle termination my way
+}
+void dangerous() // very!
+{
+  terminate_handler old = set_terminate(my_handler);
+  // ...
+  set_terminate(old); // restore the old terminate handler
+}
+```
+Note that abort() indicates abnormal exit from the program. The function exit() can be used to exit a program with a return value that indicates to the surrounding system whether the exit is normal or abnormal.
+If you want to ensure cleanup when an otherwise uncaught exception happens, you can add a catch-all handler to main().
+
+If an exception is not caught on a thread, std::terminate() is called.
+
+
 ## Namespaces ##
 
+We can avoid name clashes by separating sets of declarations (e.g., library interfaces) into namespaces. The members of a namespace are in the same scope and can refer to each other without special notation, whereas access from outside the
+namespace requires explicit notation. A namespace is a (named) scope. A member can be declared within a namespace definition and defined later using the namespacename::member-name notation.
+
+A using-declaration introduces a synonym into a scope. When used for an overloaded name, a using-declaration applies to all the overloaded versions.
+For example:
+
+```CPP
+namespace N {
+  void f(int);
+  void f(string);
+};
+
+void g()
+{
+  using N::f;
+  f(789); //N::f(int)
+  f("Bruce"); // N::f(string)
+}
+```
+- A using-directive makes names from a namespace available almost as if they had been declared outside their namespace, like , using namespace std.
+- When a class member invokes a named function, other members of the same class and its base classes are preferred over functions potentially found based on the argument types (operators follow a different rule).
+- A namespace is open; that is, you can add names to it from several separate namespace declarations. For example:
+
+The rules of thumb are:
+[1] If some qualification is really common for several names, use a using-directive for that namespace.
+[2] If some qualification is common for a particular name from a namespace, use a using-declaration for that name.
+[3] If a qualification for a name is uncommon, use explicit qualification to make it clear from where the name comes.
+[4] Don’t use explicit qualification for names in the same namespace as the user.
+
+```CPP
+namespace A {
+  int f(); // now A has member f()
+}
+
+namespace A {
+  int g(); // now A has two members, f() and g()
+}
+```
+
+```CPP
+namespace X {
+  int i, j, k;
+}
+
+int k;
+
+void f1()
+{
+  int i = 0;
+  using namespace X; // make names from X accessible
+  i++; //local i
+  j++; //X::j
+  k++; //error : X’s k or the global k?
+  ::k++; //the global k
+  X::k++; //X’s k
+}
+void f2()
+{
+  int i = 0;
+  using X::i; // error : i declared twice in f2()
+  using X::j;
+  using X::k; // hides global k
+  i++;
+  j++; //X::j
+  k++; //X::k
+}
+```
+
+- A locally declared name (declared either by an ordinary declaration or by a using-declaration) hides nonlocal declarations of the same name, and any illegal overloading of the name is detected at the point of declaration.
+- If users give their namespaces short names, the names of different namespaces will clash:
+  
+```CPP
+namespace A {// shor t name, will clash (eventually)
+// ...
+}
+A::String s1 = "Grieg";
+A::String s2 = "Nielsen";
+However, long namespace names can be impractical in real code.
+
+namespace ATT = American_Telephone_and_Telegraph; // use namespace alias to shorten names:
+
+```
+
+**Namespace Composition**
+
+Combining composition (by using-directives) with selection (by using-declarations) yields the flexibility needed for most real-world examples.
+
+```CPP
+namespace Lib2 {
+using namespace His_lib; // everything from His_lib
+using namespace Her_lib; // everything from Her_lib
+using His_lib::String; // resolve potential clash in favor of His_lib
+using Her_lib::Vector; // resolve potential clash in favor of Her_lib
+using Her_string = Her_lib::String; // rename
+template<class T>
+  using His_vec = His_lib::Vector<T>; // rename
+template<class T>
+  class List { /* ... */ }; // additional stuff
+// ...
+}
+There is no general language mechanism for renaming, but for types and templates, we can introduce aliases with using.
+```
+- Function overloading works across namespaces.
+- There is a way of selecting between two versions that simply and obviously guarantees that a user sees exactly one particular version. This is called an `inline namespace`. Here, Popular contains three subnamespaces, each defining a version. The inline specifies that V3_2 is the default meaning of Popular.
+  
+```CPP
+namespace Popular {
+
+  inline namespace V3_2 { // V3_2 provides the default meaning of Popular
+  double f(double);
+  int f(int);
+  template<class T>
+  class C { /* ... */ };
+  }
+  
+  namespace V3_0 {
+  // ...
+  }
+  namespace V2_4_2 {
+    double f(double);
+    template<class T>
+    class C { /* ... */ };
+  }
+}
+```
+- An unnamed namespace (also called an anonymous namespace) is used to give internal linkage to everything declared inside it. Is visible only within that translation unit (.cpp file). Cannot be accessed from other .cpp files.Avoid Global Symbol Collisions. Replace static at Global Scope
+
+ ```CPP
+static int counter = 5;
+int glbl = 10; // If two translation unit defines same global , results in linker error
+
+// Each file gets its own private counter.
+namespace {
+    int counter = 5;
+}
+
+namespace {
+    int glbl = 5;
+}
+Each file gets its own private counter.
+```
+- Use unnamed namespace instead of global static.
+
 ## Source File and Programs ##
+
+**Linkage**
+
+A name that can be used in translation units different from the one in which it was defined is said to have `external linkage`. A name that can be referred to only in the translation unit in which it is defined is said to have internal linkage.
+Names that a linker does not see, such as the names of local variables, are said to have no linkage.
+```CPP
+int global; //external linkage
+static int x1 = 1; // internal linkage: not accessible from other translation units
+const char x2 = 'a'; // internal linkage: not accessible from other translation units
+extern const char x3 = 'a'; //external linkage
+extern  char x4 = 'a'; //external linkage
+``` 
+- Combination of external linkage and inlining is banned to make life simpler for compiler writers.
+- We keep inline function definitions consistent by putting them into header files. An inline function must be defined identically in every translation unit in which it is used - bad taste!.
+- By default, const objects , constexpr objects , type aliases , and anything declared static in a namespace scope have internal linkage. To ensure consistency, place aliases, consts, constexprs, and inlines in header files.
+- If you must use global variables, at least restrict their use to a single source file. This restriction can be achieved in one of two ways:
+    [1] Place declarations in an unnamed namespace.
+    [2] Declare an entity static.
+
+<img width="692" height="380" alt="image" src="https://github.com/user-attachments/assets/d06ae8d3-a1b9-4b03-b837-3080639463e7" />
+<img width="616" height="128" alt="image" src="https://github.com/user-attachments/assets/e3a105d3-1f1a-43f7-bf90-4affd4ca36fe" />
+
+<img width="642" height="158" alt="image" src="https://github.com/user-attachments/assets/5bf0ff18-dbc4-4621-8b7d-e001f775567e" />
+
+- Including a header containing such definitions will lead to errors or (in the case of the using-directive) to confusion.
+- That is, two definitions of a class, template, or inline function are accepted as examples of the same unique definition if and only if
+    [1] they appear in different translation units, and
+    [2] they are token-for-token identical, and
+    [3] the meanings of those tokens are the same in both translation units.
+```CPP
+For example:
+// file1.cpp:
+struct S { int a; char b; };
+void f(S∗);
+// file2.cpp:
+struct S { int a; char b; };
+void f(S∗ p) { /* ... */ }
+The ODR says that this example is valid and that S refers to the same class in both source files.
+```
+- Local type aliases and macros can change the meaning of #included declarations:
+// s.h:
+  struct S { Point a; char b; };
+
+// file1.cpp:
+  #define Point int
+  #include "s.h"
+  // ...
+
+// file2.cpp:
+  class Point { /* ... */ };
+  #include "s.h"
+  // ...
+
+The best defense against this kind of hackery is to make headers as self-contained as possible. For example, if class Point had been declared in the s.h header, the error would have been detected.
+A template definition can be #included in sev eral translation units as long as the ODR is adhered to. This applies even to function template definitions and to class templates containing member function definitions.
+
+**extern "C"**
+TBD
+
+**Linkage and Pointers to Functions**
+
+```CPP
+typedef int (∗FT)(const void∗, const void∗); //FT has C++ linkage
+extern "C" {
+  typedef int (∗CFT)(const void∗, const void∗); //CFT has C linkage
+  void qsort(void∗ p, size_t n, size_t sz, CFT cmp); // cmp has C linkage
+}
+
+void isort(void∗ p, size_t n, size_t sz, FT cmp); // cmp has C++ linkage
+void xsort(void∗ p, size_t n, size_t sz, CFT cmp); // cmp has C linkage
+extern "C" void ysort(void∗ p, size_t n, size_t sz, FT cmp); // cmp has C++ linkage
+int compare(const void∗, const void∗); //compare() has C++ linkage
+extern "C" int ccmp(const void∗, const void∗); //ccmp() has C linkage
+
+void f(char∗ v, int sz)
+{
+  qsort(v,sz,1,&compare); // error
+  qsort(v,sz,1,&ccmp); // OK
+  isort(v,sz,1,&compare); // OK
+  isort(v,sz,1,&ccmp); // error
+}
+
+```
+To avoid data races in initialization, try these techniques in order:
+    [1] Initialize using constant expressions (note that built-in types without initializers are initialized to zero and that standard containers and strings are initialized to empty by linktime initialization).
+    [2] Initialize using expressions without side effects.
+    [3] Initialize in a known single-threaded ‘‘startup phase’’ of computation.
+    [4] Use some form of mutual exclusion.
+
+
+
+A program can terminate in several ways:
+    [1] By returning from main()
+    [2] By calling exit()
+    [3] By calling abort()
+    [4] By throwing an uncaught exception
+    [5] By violating noexcept
+    [6] By calling quick_exit()
+
+## Abstraction Mechanisms ##
+
+### Classes ###
+
+### Construction, Cleanup, Copy, and Move ###
+
+### Operator Overloading ###
+
+### Special Operators ###
+
+### Derived Classes ###
+
+### Class Hierarchies ###
+
+### Run-Time Type Information ###
+
+### Templates ###
+
+### Generic Programming ###
+
+### Specialization ###
+
+### Instantiation ###
+
+### Templates and Hierarchies ###
+
+### Metaprogramming ###
+
+### A Matrix Design ###
