@@ -1156,7 +1156,19 @@ constexpr const int∗ tp = addr(5); // error : address of temporary
 
 ```
 ### Conditional Evaluation of constexpr ###
-TBD
+A branch of a conditional expression that is not taken in a constexpr function is not evaluated. This implies that a branch not taken can require run-time evaluation.
+
+```CPP
+constexpr int check(int i)
+{
+  return (low<=i && i<high) ? i : throw out_of_rang e();
+}
+constexpr int low = 0;
+constexpr int high = 99;
+// ...
+constexpr int val = check(f(x,y,z));
+```
+f(x,y,z) computes some implementation-dependent value ,hence check() will be computed at run-time.
 
 **[[noreturn]] Functions**
 
@@ -1166,8 +1178,37 @@ expected to return. For example:
 ```CPP
 [[noreturn]] void exit(int); // exit will never retur n
 ```
+**Pointer to Function**
+- dereferencing a pointer to function using `∗` is optional. Similarly, using `&` to get the address of a function is optional.
+- Pointers to functions have argument types declared just like the functions themselves. In pointer assignments, the complete function type must match exactly.
+- You can take the address of an overloaded function by assigning to or initializing a pointer to function. In that case, the type of the target is used to select from the set of overloaded functions. For
+example:
+```CPP
+void f(int);
+int f(char);
+void (∗pf1)(int) = &f; // void f(int)
+int (∗pf2)(char) = &f; // int f(char)
+void (∗pf3)(char) = &f; // error : no void f(char)
+```
+
+It is also possible to take the address of member functions, but a pointer to member function is quite different from a pointer to (nonmember) function.
+A pointer to a noexcept function can be declared noexcept. For example:
+```CPP
+void f(int) noexcept;
+void g(int);
+void (∗p1)(int) = f; // OK: but we throw away useful infor mation
+void (∗p2)(int) noexcept = f; // OK: we preser ve the noexcept infor mation
+void (∗p3)(int) noexcept = g; // error : we don’t know that g doesn’t throw
+```
+
+A pointer to function must reflect the linkage of a function. Neither linkage specification nor noexcept may appear in type aliases:
+```CPP
+using Pc = extern "C" void(int); // error : linkage specification in alias
+using Pn = void(int) noexcept; // error : noexcept in alias
+```
 
 **Argument Passing**
+
 How do we choose among the ways of passing arguments? My rules of thumb are:
 [1] Use pass-by-value for small objects.
 [2] Use pass-by-const-reference to pass large values that you don’t need to modify.
@@ -1182,6 +1223,82 @@ void odd(int∗ p);
 void odd(int a[]);
 void odd(int buf[1020]);
 ```
+
+**List Arguments**
+TBD
+
+**Default Arguments**
+```CPP
+  complex(double r ={}, double i ={}) :re{r}, im{i} {} // construct complex from two scalars
+```
+**Overloaded Functions**
+
+A series of criteria are tried in order:
+[1] Exact match; that is, match using no or only trivial conversions (for example, array name to pointer, function name to pointer to function, and T to const T)
+[2] Match using promotions; that is, integral promotions (bool to int, char to int, short to int, and their unsigned counterparts; and float to double)
+[3] Match using standard conversions (e.g., int to double, double to int, double to long double ,Derived∗ to Base∗, T∗ to void∗, int to unsigned int)
+[4] Match using user-defined conversions (e.g., double to complex<double>; )
+[5] Match using the ellipsis ... in a function declaration 
+[5] Match using narrowing  (int to char etc)
+
+If two matches are found at the highest level where a match is found, the call is rejected as ambiguous.
+
+``CPP
+void print(int);
+void print(const char∗);
+void print(double);
+void print(long);
+void print(char);
+void h(char c, int i, short s, float f)
+{
+  print(c); // exact match: invoke print(char)
+  print(i); // exact match: invoke print(int)
+  print(s); // integral promotion: invoke print(int)
+  print(f); // float to double promotion: print(double)
+  print('a'); // exact match: invoke print(char)
+  print(49); // exact match: invoke print(int)
+  print(0); // exact match: invoke print(int)
+  print("a"); // exact match: invoke print(const char*)
+  print(nullptr); // nullptr_t to const char* promotion: invoke print(cost char*)
+}
+```
+- Overload resolution is independent of the order of declaration of the functions considered.
+- Function templates are handled by applying the overload resolution rules to the result of specialization based on a set of arguments.
+- There are separate rules for overloading when a {}-list is used  and for rvalue reference template arguments
+- Return types are not considered in overload resolution. The reason is to keep resolution for an individual operator or function call context-independent.
+- Overloading takes place among the members of an overload set. By default, that means the functions of a single scope; functions declared in different non-namespace scopes do not overload
+- A base class and a derived class provide different scopes so that overloading between a base class function and a derived class function doesn’t happen by default. For example:
+
+```CPP
+struct Base {
+  void f(int);
+};
+struct Derived : Base {
+  void f(double);
+};
+void g(Derived& d)
+{
+  d.f(1); // call Derived::f(double);
+}
+```
+
+- When overloading across class scopes or namespace scopes is wanted, usingdeclarations or using-directives can be used . Argument-dependent lookup can also lead to overloading across namespaces.
+- In the process of choosing among overloaded functions with two or more arguments, a best match is found for each argument.3. A function that is the best match for one argument and a better or equal match for all other arguments is called. If no such function exists,the call is rejected as ambiguous.
+
+```CPP
+int pow(int, int);
+double pow(double , double);
+complex pow(double , complex);
+complex pow(complex, int);
+complex pow(complex, complex);
+
+void g()
+{
+  double d = pow(2.0,2); // error : pow(int(2.0),2) or pow(2.0,double(2))?
+}
+
+```
+- One can also add an explicit type conversion to resolve a specific call.
 
 **Macros**
 
