@@ -1814,9 +1814,598 @@ A program can terminate in several ways:
 
 ### Classes ###
 
-### Construction, Cleanup, Copy, and Move ###
+• A class is a user-defined type.
+• A class consists of a set of members. The most common kinds of members are data members and member functions.
+• Member functions can define the meaning of initialization (creation), copy, move, and cleanup (destruction).
+• Members are accessed using . (dot) for objects and −> (arrow) for pointers.
+• Operators, such as +, !, and [], can be defined for a class.
+• A class is a namespace containing its members.
+• The public members provide the class’s interface and the private members provide implementation details.
+• A struct is a class where members are by default public. By default, members of a class are private.
+• Functions declared within a class definition (a struct is a kind of class; are called member functions.
+• By default, objects can be copied. In particular, a class object can be initialized with a copy of an object of its class. The default semantics is memberwise copy. If that is not the right choice for a class X, the user can define an appropriate assignment operator
+
+**Access Control**
+
+**Constructors**
+
+- A constructor is recognized by having the same name as the class itself. When a class has a constructor, all objects of that class will be initialized by a constructor call. If the constructor requires arguments, these arguments must be supplied.
+- By providing several constructors, we can provide a variety of ways of initializing objects of a type. Constructors obey the same overloading rules as do ordinary functions.
+- Given constructors, other member functions no longer have to deal with the possibility of uninitialized data
+
+```CPP
+class Date {
+  int d, m, y;
+  public:
+  // ...
+  Date(int, int, int); // day, month, year
+  Date(int, int); // day, month, today’s year
+  Date(int); //day, today’s month and year
+  Date(); //default Date: today
+  Date(const char∗); // date in string representation
+  Date(int dd =0, int mm =0, int yy =0); we could use the default values directly as default arguments
+
+  explicit Date(int dd =0, int mm =0, int yy =0);
+};
+```
+
+Since a constructor defines initialization for a class, we can use the {}-initializer notation. Brace initialization does not allow narrowing.
+
+```CPP
+#include <vector>
+
+std::vector<int> v1(10, 5);   // 10 elements, each 5
+std::vector<int> v2{10, 5};   // two elements: 10 and 5
+
+```
+Here:
+
+() calls (size, value)
+{} calls initializer_list
+
+If you want the first behavior, you must use ().
+
+```CPP
+auto a = std::vector<int>(10);  // vector of size 10
+auto b = std::vector<int>{10};  // vector with one element 10
+
+Semantics change because {} prefers initializer_list.
+```
+It is recommend to use the {} notation over the () notation for initialization because it is explicit about what is being done (initialization), avoids some potential mistakes, and can be used consistently.
+
+A constructor declared with the keyword `explicit` can only be used for initialization and explicit conversions. It we can specify that a constructor is not used as an implicit conversion.  By default, declare a constructor that can be called with a single argument explicit. If a constructor is declared explicit and defined outside the class, that explicit cannot be repeated
+
+```CPP
+class Date {
+  int d, m, y;
+  public:
+  explicit Date(int dd);
+  // ...
+};
+Date::Date(int dd) { /* ... */ } // OK
+explicit Date::Date(int dd) { /* ... */ } // error
+```
+
+```CPP
+class Date {
+  int d, m, y;
+  public:
+  explicit Date(int dd =0, int mm =0, int yy =0);
+  // ...
+};
+
+Date d1 {15}; // OK: considered explicit
+Date d2 = Date{15}; // OK: explicit
+Date d3 = {15}; // error : = initialization does not do implicit conversions, type of 15 is not Date rathet int.
+Date d4 = 15; // error : = initialization does not do implicit conversions, type of 15 is not Date rathet int
+
+void f()
+{
+  my_fct(15); // error : argument passing does not do implicit conversions
+  my_fct({15}); // error : argument passing does not do implicit conversions
+  my_fct(Date{15}); // OK: explicit
+// ...
+}
+```
+
+```CPP
+
+struct X {
+  explicit X();
+  explicit X(int,int);
+};
+
+X x1 ={}; //error : implicit
+X x2 = {1,2}; // error : implicit
+X x3{}; //OK: explicit
+X x4 {1,2}; // OK: explicit
+int f(X);
+int i1 = f({}); // error : implicit
+int i2 = f({1,2}); // error : implicit
+int i3 = f(X{}); // OK: explicit
+int i4 = f(X{1,2}); // OK: explicit
+```
+
+**In-Class Initializers**
+
+```CPP
+class Date {
+  int d {today.d};
+  int m {today.m};
+  int y {today.y};
+public:
+  Date(int, int, int); // day, month, year
+  Date(int, int); // day, month, today’s year
+  Date(int); //day, today’s month and year
+  Date(); //default Date: today
+  Date(const char∗); // date in string representation
+// ...
+```
+
+**Mutability**
+
+We can define a named object as a constant or as a variable. In other words, a name can refer to an object that holds an immutable or a mutable value. Mutable allows a data member to be modified even if the object is const.
+Systematic use of immutable objects leads to more comprehensible code, to more errors being found early, and sometimes to improved performance. In particular, immutability is a most useful property in a multi-threaded program.
+
+`Constant Member Functions`
+
+- A const member function can be invoked for both const and non-const objects, whereas a nonconst member function can be invoked only for non-const objects.
+- When a const member function is defined outside its class, the const suffix is required.
+- Note that const does not apply (transitively) to objects accessed through pointers or references.
+- Bitwise constness → No member changes at all. Logical constness → Object’s observable behavior doesn’t change.
+- mutable supports logical constness.
+
+```CPP
+#include <mutex>
+
+class ThreadSafe {
+    mutable std::mutex m;
+    int data;
+
+public:
+    int get() const {
+        std::lock_guard<std::mutex> lock(m);
+        return data;
+    }
+};
+
+Locking modifies the mutex state, but not the logical state of the object. Without mutable, this wouldn't compile.
+```
+
+
+We can define a member of a class to be mutable, meaning that it can be modified even in a const object:
+
+```CPP
+class Date {
+public:
+  // ...
+  string string_rep() const; // string representation
+  private:
+  mutable bool cache_valid;
+  mutable string cache;
+  void compute_cache_value() const; // fill (mutable) cache
+  // ...
+};
+```
+
+Now we can define string_rep() in the obvious way:
+
+```CPP
+string Date::string_rep() const
+{
+  if (!cache_valid) {
+    compute_cache_value();
+    cache_valid = true;
+  }
+  return cache;
+}
+```
+
+We can now use string_rep() for both const and non-const objects. For example:
+
+```CPP
+void f(Date d, const Date cd)
+{
+  string s1 = d.string_rep();
+  string s2 = cd.string_rep(); // OK!
+  // ...
+}
+```
+Even if an object is const, it can still modify the data it points to.  Because const applies to the object itself — not necessarily to the memory it refers to.  This is different from mutable.  Here, we rely on pointers or references. It is called as Mutability through Indirection.
+
+
+```CPP
+class A {
+    int* p;
+public:
+    A(int* ptr) : p(ptr) {}
+
+    void change() const {
+        *p = 42;   // ✅ Allowed
+    }
+};
+
+Even though change() is const, we modify *p.
+Because:
+p itself is not changed.
+Only the memory it points to is changed.
+const does not automatically mean “deep const”.
+```
+
+- Each (non-static) member function knows for which object it was invoked and can explicitly refer to it.
+- The expression ∗this refers to the object for which a member function is invoked.
+- In a non-static member function, the keyword this(Self-Reference) is a pointer to the object for which the function was invoked. In a non-const member function of class X, the type of this is X∗. However, this is considered an rvalue, so it is not possible to take the address of this or to assign to this. In a const member function of class X, the type of this is const X∗ to prevent modification of the object itsel.
+- One common explicit use of this is in linked-list manipulation. For example:
+```CPP
+struct Link {
+  Link∗ pre;
+  Link∗ suc;
+  int data;
+  
+  Link∗ insert(int x) // inser t x before this
+  {
+    return pre = new Link{pre ,this,x};
+  }
+  
+  void remove() // remove and destroy this
+  {
+    if (pre) pre−>suc = suc;
+    if (suc) suc−>pre = pre;
+    delete this;
+  }
+  // ...
+};
+```
+
+Explicit use of this is required for access to members of base classes from a derived class that is a template.
+
+- Member of a class X can be accessed by applying the . (dot) operator to an object of class X or by applying the −> (arrow) operator to a pointer to an object of class X.
+
+
+**static Members**
+
+- A static member – a function or data member – must be defined somewhere. The keyword static is not repeated in the definition of a static member.
+- A variable that is part of a class, yet is not part of an object of that class, is called a static member. There is exactly one copy of a static member instead of one copy per object, as for
+ordinary non-static members.
+- Similarly, a function that needs access to members of a class, yet doesn’t need to be invoked for a particular object, is called a static member function.
+
+```CPP
+class Employee {
+private:
+    std::string name;          // Non-static member → one per object
+    static int count;          // Static data member → ONE shared copy
+
+public:
+    Employee(std::string n) : name(n) {
+        ++count;               // Accessing shared static member
+    }
+
+    static int getCount() {    // Static member function
+        return count;          // Can access only static members directly
+    }
+};
+
+// Definition of static data member
+// IMPORTANT: 'static' keyword is NOT repeated here
+int Employee::count = 0;
+
+int main() {
+    Employee e1("Alice");
+    Employee e2("Bob");
+
+    std::cout << Employee::getCount();  // Call using class name
+}
+
+```
+
+**Member class / Nested class**
+
+```CPP
+template<typename T>
+class Tree {
+  using value_type = T; // member alias
+  enum Policy { rb, splay, treeps }; // member enum
+  class Node { // member class
+    Node∗ right;
+    Node∗ left;
+    value_type value;
+    public:
+    void f(Tree∗);
+  };
+  Node∗ top;
+  public:
+  void g(const T&);
+  // ...
+};
+```
+
+A member class (often called a nested class) can refer to types and static members of its enclosing class. It can only refer to non-static members when it is given an object of the enclosing class to refer to.
+A nested class has access to members of its enclosing class, even to private members (just as a member function has), but has no notion of a current object of the enclosing class.
+
+```CPP
+template<typename T>
+void Tree::Node::f(Tree∗ p)
+{
+  top = right; // error : no object of type Tree specified
+  p−>top = right; // OK
+  value_type v = left−>value; // OK: value_type is not associated with an object
+}
+```
+
+A class does not have any special access rights to the members of its nested class. For example:
+```CPP
+template<typename T>
+void Tree::g(Tree::Node∗ p)
+{
+  value_type val = right−>value; //error : no object of type Tree::Node
+  value_type v = p−>right−>value; // error : Node::right is private
+  p−>f(this); //OK
+}
+```
+Member enums are often an alternative to enum classes when it comes to avoiding polluting an enclosing scope with the names of enumerators
+
+A class is called concrete (or a concrete class) if its representation is part of its definition. This distinguishes it from abstract classes (§3.2.2, §20.4) which provide an interface to a variety of
+implementations. Having the representation available allows us:
+• To place objects on the stack, in statically allocated memory, and in other objects
+• To copy and move objects
+• To refer directly to named objects (as opposed to accessing through pointers and references)
+
+- Use public data (structs) only when it really is just data and no invariant is meaningful for the data members.
+- Make a function that needs access to the representation of a class but needn’t be called for a specific object a static member function.
+
+
+### Life cycle of an object - Construction, Cleanup, Copy, and Move ###
+
+Constructors, copy and move assignment operations, and destructors directly support a view of lifetime and resource management. An object is considered an object of its type after its constructor
+completes, and it remains an object of its type until its destructor starts executing.
+
+```CPP
+class X {
+  X(Sometype); // ‘‘ordinar y constr uctor’’: create an object
+  X(); //default constructor
+  X(const X&); // copy constr uctor
+  X(X&&); //move constr uctor
+  X& operator=(const X&); // copy assignment: clean up target and copy
+  X& operator=(X&&); // move assignment: clean up target and move
+  ˜X(); //destructor: clean up
+};
+```
+There are five situations in which an object is copied or moved:
+  • As the source of an assignment
+  • As an object initializer
+  • As a function argument
+  • As a function return value
+  • As an exception
+
+```CPP
+struct S {
+S(); //fine
+void S(int); // error : no type can be specified for a constructor
+int S; // error : the class name must denote a constructor
+enum S { foo, bar }; // error : the class name must denote a constructor
+};
+```
+Constructor initialization must establish a class invariant, that is, something that must hold whenever a member function is called (from outside the class).
+
+A constructor builds a class object ‘‘from the bottom up’’:
+  [1] first, the constructor invokes its base class constructors,
+  [2] then, it invokes the member constructors, and
+  [3] finally, it executes its own body.
+A destructor ‘‘tears down’’ an object in the reverse order:
+  [1] first, the destructor executes its own body,
+  [2] then, it invokes its member destructors, and
+  [3] finally, it inv okes its base class destructors.
+
+In particular, a virtual base is constructed before any base that might use it and destroyed after all such bases. This ordering ensures that a base or a member is not used before it has been initialized or used after it has been destroyed.
+A destructor is invoked implicitly upon exit from a scope or by delete.
+
+```CPP
+new(p) X{a}; // copy constr uct an X with the value a in address p. This use of a constructor is known as ‘‘placement new’’ 
+```
+
+A destructor can be declared to be virtual, and usually should be for a class with a virtual function. The reason we need a virtual destructor is that an object usually manipulated through the interface
+provided by a base class is often also deleted through that interface
+
+```CPP
+void user(Shape∗ p)
+{
+  p−>draw(); // invoke the appropriate draw()
+  // ...
+  delete p; // invoke the appropriate destructor
+};
+```
+Had Shape’s destructor not been virtual that delete would have failed to invoke the appropriate derived class destructor (e.g., ˜Circle()). That failure would cause the resources owned by the deleted object (if any) to be leaked.
+If a class has a private non-static data member, it needs a constructor to initialize it. We can initialize objects of a class for which we have not defined a constructor using
+  • memberwise initialization,
+  • copy initialization, or
+  • default initialization (without an initializer or with an empty initializer list).
+
+```CPP
+struct Work {
+  string author;
+  string name;
+  int year;
+};
+
+Work s9 { "Beethoven",
+    "Symphony No. 9 in D minor, Op. 125; Choral",
+    1824
+    }; //memberwise initialization
+
+Work currently_playing { s9 }; // copy initialization
+
+Work none {}; // default initialization
+```
+The three members of currently_playing are copies of those of s9. The default initialization of using {} is defined as initialization of each member by {}. So, none
+is initialized to {{},{},{}}, which is {"","",0}.
 
 ### Operator Overloading ###
+
+Functions defining meanings for the following operators can be declared:
+
+```CPP
++     −   ∗     /       %       ˆ     &
+|     ˜   !     =       <       >     +=
+−=   ∗=   /=     %=    ˆ=       &=     |=
+<<   >>   >>=   <<=     ==     !=     <=
+>=   &&   ||     ++     −−     −>∗     ,
+−>   []   ()     new   new[]   delete   delete[]
+```
+
+The following operators cannot be defined by a user:
+
+```CPP
+:: scope resolution
+. member selection
+.∗ member selection through pointer to member
+```
+
+They take a name, rather than a value, as their second operand and provide the primary means of referring to members.
+
+The named ‘‘operators’’cannot be overloaded because they report fundamental facts about their operands:
+
+```CPP
+sizeof size of object 
+alignof alignment of object
+typeid type_info of an object
+```
+
+Finally, the ternary conditional expression operator cannot be overloaded (for no particularly fundamental reason):
+
+```CPP
+?: conditional evaluation
+```
+
+A binary operator can be defined by either a non-static member function taking one argument or a nonmember function taking two arguments. For any binary operator @, aa@bb can be interpreted
+as either aa.operator@(bb) or operator@(aa,bb). If both are defined, overload resolution= determines which, if any, interpretation is used.
+
+```CPP
+class X {
+  public:
+  void operator+(int);
+  X(int);
+};
+
+void operator+(X,X);
+
+void operator+(X,double);
+
+void f(X a)
+{
+  a+1; // a.operator+(1)
+  1+a; // ::operator+(X(1),a)
+  a+1.0; // ::operator+(a,1.0)
+}
+```
+
+```CPP
+class X {
+  public: // members (with implicit this pointer):
+  X∗ operator&(); // prefix unary & (address of)
+  X operator&(X); // binar y & (and)
+  X operator++(int); // postfix increment (see §19.2.4)
+  X operator&(X,X); // error : ter nary
+  X operator/(); // error : unar y /
+};
+
+// nonmember functions :
+X operator−(X); //prefix unary minus
+X operator−(X,X); //binar y minus
+X operator−−(X&,int); // postfix decrement
+X operator−(); //error : no operand
+X operator−(X,X,X); // error : ter nary
+X operator%(X); // error : unar y %
+```
+
+The operators operator= , operator[] , operator() , and operator−> must be non-static member functions. The default meaning of &&, ||, and , (comma) involves sequencing: the first operand is evaluated
+before the second (and for && and || the second operand is not always evaluated). This special rule does not hold for user-defined versions of &&, ||, and , (comma); instead these operators are treated exactly like other binary operators.
+
+The operators = (assignment), & (address-of), and , (sequencing) have predefined meanings when applied to class objects.
+
+```CPP
+class X {
+  public:
+  // ...
+  void operator=(const X&) = delete;
+  void operator&() = delete;
+  void operator,(const X&) = delete;
+  // ...
+};
+void f(X a, X b)
+{
+  a = b; // error : no operator=()
+  &a; // error : no operator&()
+  a,b; // error : no operator,()
+}
+```
+An operator function must either be a member or take at least one argument of a user-defined type (functions redefining the new and delete operators need not). This rule ensures that a user cannot change the meaning of an expression unless the expression contains an object of a user-defined type. In particular, it is not possible to define an operator function that operates exclusively on pointers.
+An operator function intended to accept a built-in type  as its first operand cannot be a member function. For example, consider adding a complex variable aa to the integer 2: aa+2 can, with a suitably declared member function, be interpreted as aa.operator+(2), but 2+aa cannot because there is no class int for which to define + to mean 2.operator+(aa). Because the compiler does not know the meaning of a user-defined +, it cannot assume that the operator is commutative and so interpret 2+aa as aa+2.
+
+Enumerations are user-defined types so that we can define operators for them. For example:
+
+```CPP
+enum Day { sun, mon, tue, wed, thu, fri, sat };
+
+Day& operator++(Day& d)
+{
+  return d = (sat==d) ? sun : static_cast<Day>(d+1);
+}
+```
+
+For arguments, we have two main choices for passing arguments:
+• Pass-by-value
+• Pass-by-reference
+
+We use const references to pass large objects that are not meant to be modified by the called function.
+
+```CPP
+void Point::operator+=(Point delta); // pass-by-value
+Matrix operator+(const Matrix&, const Matrix&); // pass-by-const-reference
+Matrix operator+(const Matrix& a, const Matrix& b) // return-by-value
+Matrix& Matrix::operator+=(const Matrix& a) // return-by-reference
+```
+**Operators in Namespaces**
+
+An operator is either a member of a class or defined in some namespace (possibly the global namespace).
+
+```CPP
+namespace std { // simplified std
+  class string {
+  };
+  
+  class ostream {
+    ostream& operator<<(const char∗); //output C-style string
+  };
+  extern ostream cout;
+  ostream& operator<<(ostream&, const string&); // output std::string
+} // namespace std
+
+std::cout << p
+means
+std::cout.operator<<(p)
+
+```
+
+Consider a binary operator @. If x is of type X and y is of type Y, x@y is resolved like this:
+  • If X is a class, look for operator@ as a member of X or as a member of a base of X; and
+  • look for declarations of operator@ in the context surrounding x@y; and
+  • if X is defined in namespace N, look for declarations of operator@ in N; and
+  • if Y is defined in namespace M, look for declarations of operator@ in M.
+
+Declarations for several operator@s may be found and overload resolution rules are used to find the best match, if any. This lookup mechanism is applied only if the operator has at least one operand of a user-defined type. Note that a type alias is just a synonym and not a separate user-defined type. Note that in operator lookup no preference is given to members over nonmembers. This differs from lookup of named functions The lack of hiding of operators ensures that built-in
+operators are never inaccessible and that users can supply new meanings for an operator without modifying existing class declarations. Unary operators are resolved analogously.
+
+```CPP
+X operator!(X);
+
+struct Z {
+  Z operator!(); //does not hide ::operator!()
+  X f(X x) { /* ... */ return !x; } // invoke ::operator!(X)
+  int f(int x) { /* ... */ return !x; } // invoke the built-in ! for ints
+};
+```
+In particular, the standard iostream library defines << member functions to output built-in types, and a user can define << to output user-defined types without modifying class ostream.
+
 
 ### Special Operators ###
 
