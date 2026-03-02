@@ -2409,6 +2409,21 @@ In particular, the standard iostream library defines << member functions to outp
 
 ### Special Operators ###
 
+```CPP
+[] () −> ++ −− new delete
+```
+
+An operator[]() must be a non-static member function.
+
+```CPP
+obj[index]
+is translated by the compiler into:
+obj.operator[](index)
+So it must belong to the class of obj.
+```
+
+An operator()() must be a non-static member function. The use of the () operator is to provide the usual function call syntax for objects that in some way behave like functions.
+
 ### Derived Classes ###
 
 ### Class Hierarchies ###
