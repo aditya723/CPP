@@ -2424,6 +2424,102 @@ So it must belong to the class of obj.
 
 An operator()() must be a non-static member function. The use of the () operator is to provide the usual function call syntax for objects that in some way behave like functions.
 
+Operator −> must be a non-static member function. If used, its return type must be a pointer or an object of a class to which you can apply −>. Despite the similarity between −> and . (dot), there is no way of overloading operator . (dot).
+
+The increment and decrement operators are unique among C++ operators in that they can be used as both prefix and postfix operators. Consequently, we must define prefix and postfix increment and decrement for Ptr<T>. For example:
+
+```CPP
+template<typename T>
+class Ptr {
+  T∗ ptr;
+  T∗ array;
+  int sz;
+  public:
+  template<int N>
+  Ptr(T∗ p, T(&a)[N]); // bind to array a, sz==N, initial value p
+  Ptr(T∗ p, T∗ a, int s); // bind to array a of size s, initial value p
+  Ptr(T∗p); //bind to single object, sz==0, initial value p
+  Ptr& operator++(); // prefix
+  Ptr operator++(int); // postfix
+  Ptr& operator−−(); // prefix
+  Ptr operator−−(int); // postfix
+  T& operator∗(); //prefix
+};
+```
+
+The int argument is used to indicate that the function is to be invoked for postfix application of ++. This int is never used; the argument is simply a dummy used to distinguish between prefix and postfix application.
+
+```CPP
+template<typename T>
+Ptr& Ptr<T>::operator++() // return the current object after incrementing
+{
+  // ... check that ptr+1 can be pointed to ...
+  return ∗++ptr;
+}
+```
+
+The pre-increment operator can return a reference to its object. The post-increment operator must make a new object to return.
+
+ ```CPP
+template<typename T>
+Ptr Ptr<T>::operator++(int) // increment and return a Ptr with the old value
+{
+  // ... check that ptr+1 can be pointed to ...
+  Ptr<T> old {ptr,array,sz};
+  ++ptr;
+  return old;
+}
+```
+
+A user can redefine the global operator new() and operator delete() or define operator new() and operator delete() for a particular class.
+
+```CPP
+void∗ operator new(siz e_t); // use for individual object
+void∗ operator new[](siz e_t); // use for array
+void operator delete(void∗, siz e_t); // use for individual object
+void operator delete[](void∗, siz e_t); // use for array
+
+void∗ operator new (siz e_t sz, void∗ p) noexcept; // place object of size sz at p
+void∗ operator new[](siz e_t sz, void∗ p) noexcept; // place object of size sz at p
+void operator delete (void∗ p, void∗) noexcept; // if (p) make *p invalid
+void operator delete[](void∗ p, void∗) noexcept; // if (p) make *p invalid
+
+void∗ operator new(siz e_t, void∗ p) { return p; } // explicit placement operator
+
+int∗ p = new(nothrow) int[n]; // allocate n ints on the free store
+
+void∗ operator new(siz e_t sz, const nothrow_t&) noexcept; // allocate sz bytes; // return nullptr if allocation failed
+void operator delete(void∗ p, const nothrow_t&) noexcept; // deallocate space allocated by new
+void∗ operator new[](siz e_t sz, const nothrow_t&) noexcept; // allocate sz bytes; // return nullptr if allocation failed
+void operator delete[](void∗ p, const nothrow_t&) noexcept; // deallocate space allocated by new
+
+```
+
+Member operator new()s and operator delete()s are implicitly static members. Consequently, they don’t hav e a this pointer and do not modify an object. They provide storage that a constructor can initialize and a destructor can clean up.
+
+How does a compiler know how to supply the right size to operator delete()? The type specified in the delete operation matches the type of the object being deleted. If we delete an object through a pointer to a base class, that base class must have a virtual destructor for the correct size to be given:
+
+```CPP
+Employee∗ p = new Manager; // potential trouble (the exact type is lost)
+// ...
+delete p; // hope Employee has a virtual destructor
+```
+
+In principle, deallocation is then done by the destructor (which knows the size of its class).
+
+we can define literals for user-defined types and new forms of literals for built-in types. For example:
+
+```CPP
+"Hi!"s //string, not ‘‘zero-ter minated array of char’’
+1.2i //imaginar y
+101010111000101b // binar y
+123s //seconds
+123.56km //not miles! (units)
+1234567890123456789012345678901234567890x // extended-precision
+```
+
+
+
 ### Derived Classes ###
 
 ### Class Hierarchies ###
