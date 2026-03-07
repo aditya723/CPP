@@ -2517,10 +2517,488 @@ we can define literals for user-defined types and new forms of literals for buil
 123.56km //not miles! (units)
 1234567890123456789012345678901234567890x // extended-precision
 ```
+Such user-defined literals are supported through the notion of literal operators that map literals with a given suffix into a desired type. The name of a literal operator is operator"" followed by the suffix.
+
+```CPP
+ complex<double> operator"" i(long double d) // imaginar y literal , suffixes i
+{
+  return {0,d}; // complex is a literal type
+}
+
+std::string operator"" s(const char∗ p, size_t n) // std::string literal
+{
+  return string{p,n}; // requires free-store allocation
+}
+
+template<typename T> void f(const T&);
+
+f("Hello"); // pass pointer to char*
+f("Hello"s); // pass (five-character) string object
+f("Hello\n"s); // pass (six-character) string object
+auto z = 2+1i; // complex{2,1}
+
+```
+
+There are four kinds of literals that can be suffixed to make a user-defined literal):
+• _An integer literal_: accepted by a literal operator taking an unsigned long long or a const char∗ argument or by a template literal operator, for example, 123m or 12345678901234567890X
+• _A floating-point literal_: accepted by a literal operator taking a long double or a const char∗ argument or by a template literal operator, for example, 12345678901234567890.976543210x or 3.99s
+• _A string literal_: accepted by a literal operator taking a (const char∗, size_t) pair of arguments, for example, "string"s and R"(Foo\bar)"_path
+• _A character literal_: accepted by a literal operator taking a character argument of type char, wchar_t, char16_t, or char32_t, for example, 'f'_runic or u'BEEF'_w.
 
 
+For example, we could define a literal operator to collect digits for integer values that cannot be represented in any of the built-in integer types:
 
+```CPP
+Bignum operator"" x(const char∗ p)
+{
+  return Bignum(p);
+}
+
+void f(Bignum);
+
+f(123456789012345678901234567890123456789012345x);
+
+the C-style string "123456789012345678901234567890123456789012345" is passed to operator"" x().
+```
+
+**Friends**
+
+An ordinary member function declaration specifies three logically distinct things:
+[1] The function can access the private part of the class declaration.
+[2] The function is in the scope of the class.
+[3] The function must be invoked on an object (has a this pointer).
+By declaring a member function static, we can give it the first two properties only. By declaring a nonmember function a friend, we can give it the first property only. That is, a function
+declared friend is granted access to the implementation of a class just like a member function but is otherwise independent of that class.
+
+A friend declaration can be placed in either the private or the public part of a class declaration; it does not matter where. Like a member function, a friend function is explicitly declared in the declaration
+of the class of which it is a friend. It is therefore as much a part of that interface as is a member function.
+
+A member function of one class can be the friend of another. For example:
+```CPP
+class List_iterator {
+// ...
+  int∗ next();
+};
+
+class List {
+  friend int∗ List_iterator::next();
+// ...
+};
+
+There is a shorthand for making all functions of one class friends of another. For example:
+
+class List {
+  friend class List_iterator;
+// ...
+};
+```
+It is possible to make a template argument a friend.
+
+```CPP
+template<typename T>
+class X {
+  friend T;
+  friend class T; // redundant ‘‘class’’
+  // ...
+};
+```
+
+A friend must be previously declared in an enclosing scope or defined in the non-class scope immediately enclosing the class that is declaring it to be a friend. Scopes outside the innermost enclosing namespace scope are not considered for a name first declared as a friend.
+
+```CPP
+
+class C1 { }; // will become friend of N::C
+void f1(); // will become friend of N::C
+namespace N {
+  class C2 { }; // will become friend of C
+  void f2() { } // will become friend of C
+  class C {
+  int x;
+  public:
+      friend class C1; // OK (previously defined)
+      friend void f1();
+      friend class C3; // OK (defined in enclosing namespace)
+      friend void f3();
+      friend class C4; // First declared in N and assumed to be in N
+      friend void f4();
+};
+
+class C3 {}; // friend of C
+void f3() { C x; x.x = 1; } // OK: friend of C
+} // namespace N
+
+class C4 { }; // not friend of N::C
+void f4() { N::C x; x.x = 1; } // error : x is private and f4() is not a friend of N::C
+
+```
+A friend function can be found through its arguments even if it was not declared in the immediately enclosing scope. Thus, a friend function should be explicitly declared in an enclosing scope or take an argument of
+its class or a class derived from that. If not, the friend cannot be called.
+
+```CPP
+// no f() in this scope
+class X {
+  friend void f(); // useless
+  friend void h(const X&); // can be found through its argument
+};
+void g(const X& x)
+{
+  f(); // no f() in scope
+  h(x); // X’s friend h()
+}
+```
+_Should it be a member, a static member, or a friend?_
+
+- Because member names are local to the class, a function that requires direct access to the representation should be a member unless there is a specific reason for it to be a nonmember.
+- An operation modifying the state of a class object should therefore be a member or a function taking a non-const reference argument (or a non-const pointer argument).
+- operations that do not need direct access to a representation are often best represented as nonmember functions, possibly in a namespace that makes their relationship with the class explicit.
+- 
 ### Derived Classes ###
+
+• Implementation inheritance: to sav e implementation effort by sharing facilities provided by a base class.
+• Interface inheritance: to allow different derived classes to be used interchangeably through the interface provided by a common base class.
+
+Interface inheritance is often referred to as run-time polymorphism (or dynamic polymorphism). In contrast, the uniform use of classes not related by inheritance provided by templates is often referred to as compile-time polymorphism (or static polymorphism).
+
+A derived class is often said to inherit properties from its base, so the relationship is also called inheritance. A base class is sometimes called a superclass and a derived class a subclass.
+
+Deriving Manager from Employee in this way makes Manager a subtype of Employee, so that a Manager can be used wherever an Employee is acceptable. A Manager is (also) an Employee, so a Manager∗ can be used as an Employee∗. Similarly, a Manager&
+can be used as an Employee&. However, an Employee is not necessarily a Manager, so an Employee∗ cannot be used as a Manager∗.
+
+```CPP
+void g(Manager mm, Employee ee)
+{
+  Employee∗ pe = &mm; // OK: every Manager is an Employee
+  Manager∗ pm = &ee; // error : not every Employee is a Manager
+  pm−>level = 2; // disaster : ee doesn’t have a lev el
+  pm = static_cast<Manager∗>(pe); // brute force: wor ks because pe points
+  // to the Manager mm
+  pm−>level = 2; // fine: pm points to the Manager mm that has a level
+}
+```
+
+In other words, an object of a derived class can be treated as an object of its base class when manipulated through pointers and references.
+
+Using a class as a base is equivalent to defining an (unnamed) object of that class. Consequently, a class must be defined in order to be used as a base:
+
+```CPP
+class Employee; // declaration only, no definition
+class Manager : public Employee { // error : Employee not defined
+  // ...
+};
+```
+
+A member of a derived class can use the public – and protected – members of a base class as if they were declared in the derived class itself. However, a derived class cannot access private members of a base class.
+
+As usual, constructors and destructors are as essential:
+• Objects are constructed from the bottom up (base before member and member before derived) and destroyed top-down (derived before member and member before base);
+• Each class can initialize its members and bases (but not directly members or bases of its bases);.
+• Typically, destructors in a hierarchy need to be virtual;.
+• Copy constructors of classes in a hierarchy should be used with care (if at all) to avoid slicing;
+• The resolution of a virtual function call, a dynamic_cast, or a typeid() in a constructor or destructor reflects the stage of construction and destruction (rather than the type of the yet-tobe-completed object);
+
+In a large class hierarchy, accessible (not private) data in a common base class becomes the ‘‘global variables’’ of the hierarchy i.e. visible to everyone. For clean design and simpler maintenance, we want to keep separate issues separate and avoid mutual dependencies. This causes a violation of the ideals of modularity and data hiding.
+
+**Virtual Functions**
+
+Virtual functions allow the programmer to declare functions in a base class that can be redefined in each derived class. The compiler and linker will guarantee the correct correspondence between objects and the functions applied to them.
+A virtual function must be defined for the class in which it is first declared (unless it is declared to be a pure virtual function. To allow a virtual function declaration to act as an interface to functions defined in derived
+classes, the argument types specified for a function in a derived class cannot differ from the argument types declared in the base, and only very slight changes are allowed for the return type.
+
+A virtual function can be used even if no class is derived from its class, and a derived class that does not need its own version of a virtual function need not provide one. A function from a derived class with the same name and the same set of argument types as a virtual function in a base is said to override the base class version of the virtual function. Furthermore, it is possible to override a virtual function from a base with a more derived return type.
+
+To get runtime polymorphic behavior in C++, the member functions called must be virtual and objects must be manipulated through pointers or references. When manipulating an object directly (rather than through a pointer or reference),
+its exact type is known by the compiler so that run-time polymorphism is not needed.
+
+By default, a function that overrides a virtual function itself becomes virtual. We can, but do not have to, repeat virtual in a derived class. If you want to be explicit, use override.
+
+The class internally created a pointer to implement polymorphism. In a typical implementation, the space taken is just enough to hold a pointer: the usual implementation technique is for the compiler to convert the name of a virtual function into an index into  a table of pointers to functions. That table is usually called the virtual function table or simply the vtbl. Each class with virtual functions has its own vtbl identifying its virtual functions. This can be represented graphically like this:
+
+<img width="735" height="373" alt="image" src="https://github.com/user-attachments/assets/ec1943c8-9405-4208-9dba-6fbecf44f305" />
+
+The functions in the vtbl allow the object to be used correctly even when the size of the object and the layout of its data are unknown to the caller. The implementation of a caller need only know the location of the vtbl in an Employee and the index used for each virtual function. This virtual call mechanism can be made almost as efficient as the ‘‘normal function call’’ mechanism (within 25%), so efficiency concerns should not deter anyone from using a virtual function where an ordinary function call would be acceptably efficient. Its space overhead is one pointer in each object of a class with virtual functions plus one vtbl for each such class. You pay this overhead only for objects of a class with a virtual function. You choose to pay this overhead only if you need the added functionality virtual functions provide. Had you chosen to use the alternative type-field solution, a comparable amount of space would have been needed for the type field.
+
+A virtual function invoked from a constructor or a destructor reflects that the object is partially constructed or partially destroyed. It is therefore typically a bad idea to call a virtual function from a constructor or a destructor.
+
+Calling a function using the scope resolution operator, ::,  ensures that the virtual mechanism is not used.
+
+**Override Control**
+
+_virtual_: The function may be overridden.
+_=0_: The function must be virtual and must be overridden.
+_override_: The function is meant to override a virtual function in a base class. Can not be used for non-virtual functions.
+_final_: The function is not meant to be overridden.
+
+In the absence of any of these controls, a non-static member function is virtual if and only if it overrides a virtual function in a base class.
+
+The _override_ specifier comes last in a declaration, after all other parts. In a large or complicated class hierarchy with many virtual functions, it is best to use virtual only to introduce a new virtual function and to use override on all functions intended as overriders. Using override is a bit verbose but clarifies the programmer’s intent. An override specifier is not part of the type of a function and cannot be repeated in an out-ofclass.
+definition.
+
+
+**override**
+
+```CPP
+class Derived : public Base {
+  void f() override; // OK if Base has a virtual f()
+  void g() override; // OK if Base has a virtual g()
+};
+void Derived::f() override // error : overr ide out of class
+{
+  // ...
+}
+
+void g() // OK
+{
+// ...
+}
+```
+override is not a keyword; it is what is called a contextual keyword. That is, override has a special meaning in a few contexts but can be used as an identifier elsewhere. There is a relaxation of the rule that the type of an overriding function must be the same as the type of the virtual function it overrides. That is, if the original return type was B∗, then the return type of the overriding function may be D∗, provided B is a public base of D. Similarly, a return type of B& may be relaxed to D&. This is sometimes called the covariant return rule. This relaxation applies only to return types that are pointers or references, and not to ‘‘smart pointers’’ such as unique_ptr.
+
+**final**
+
+Reasons to choose virtual:
+• Can we imagine the need for further derived classes?
+• Does a designer of a derived class need to redefine the function to achieve a plausible aim?
+• Is overriding a function error-prone (i.e., is it hard for an overriding function to provide the expected semantics of a virtual function)?
+
+If the answer is ‘‘no’’ to all three questions, we can leave the function non-virtual to gain simplicity of design and occasionally some performance (mostly from inlining). Far more rarely, we hav e a class hierarchy that starts out with virtual functions, but after the definition of a set of derived classes, one of the answers becomes ‘‘no.’’ That is, we might want to close our design to modification from its users. 
+
+```CPP
+struct Node { // interface class
+  virtual Type type() = 0;
+  // ...
+};
+
+class If_statement : public Node {
+public:
+  Type type() override final; // prevent further overr iding
+  // ...
+};
+
+class Modified_if_statement : public If_statement {
+public:
+  Type type() override; // error : If_statement::type() is final
+  // ...
+};
+```
+For good and bad, adding final to the class not only prevents overriding, it also prevents further derivation from a class.
+A final specifier is not part of the type of a function and cannot be repeated in an out-of-class definition. For example:
+
+```CPP
+class Derived : public Base {
+  void f() final; // OK if Base has a virtual f()
+  void g() final; // OK if Base has a virtual g()
+  // ...
+};
+
+void Derived::f() final // error : final out of class
+{
+  // ...
+}
+
+void g() final // OK
+{
+  // ...
+}
+```
+
+Like override, final is a contextual keyword. 
+
+**using**
+
+Functions do not overload across scopes. For example:
+
+```CPP
+struct Base {
+  void f(int);
+};
+
+struct Derived : Base {
+  void f(double);
+};
+
+void use(Derived d)
+{
+  d.f(1); // call Derived::f(double)
+  Base& br = d
+  br.f(1); // call Base::f(int)
+}
+
+void use2(D2 d)
+{
+  d.f(1); // call D2::f(int), that is, Base::f(int)
+  Base& br = d
+  br.f(1); // call Base::f(int)
+}
+```
+
+This can surprise people, and sometimes we want overloading to ensure that the best matching member function is used. As for namespaces, using-declarations can be used to add a function to a
+scope. For example:
+```CPP
+struct D2 : Base {
+  using Base::f; // bring all fs from Base into D2
+  void f(double);
+};
+```
+
+This is a simple consequence of a class also being considered a namespace. Several using-declarations can bring in names from multiple base classes. For example:
+
+```CPP
+struct B1 {
+  void f(int);
+};
+
+struct B2 {
+  void f(double);
+};
+
+struct D : B1, B2 {
+  using B1::f;
+  using B2::f;
+  void f(char);
+};
+
+void use(D d)
+{
+  d.f(1); // call D::f(int), that is, B1::f(int)
+  d.f('a'); // call D::f(char)
+  d.f(1.0); // call D::f(double), that is, B2::f(double)
+}
+```
+
+A name brought into a derived class scope by a using-declaration has its access determined by the placement of the using-declaration; We cannot use using-directives to bring all members of a base class into a
+derived class.
+
+**virtual constructors**
+TBD
+
+**Abstract Classes**
+
+A virtual function is ‘‘made pure’’ by the ‘‘pseudo initializer’’ = 0:
+
+```CPP
+class Shape { // abstract class
+public:
+  virtual void rotate(int) = 0; // pure virtual function
+  virtual void draw() const = 0; // pure virtual function
+  virtual bool is_closed() const = 0; // pure virtual function
+  // ...
+  virtual˜Shape(); //vir tual
+};
+```
+A class with one or more pure virtual functions is an abstract class, and no objects of that abstract class can be created. Because the interface provided by an abstract class cannot be used to create objects using a constructor, abstract classes don’t usually have constructors. 
+
+**Access Control**
+
+• If it is private, its name can be used only by member functions and friends of the class in which it is declared.
+• If it is protected, its name can be used only by member functions and friends of the class in which it is declared and by member functions and friends of classes derived from this class.
+• If it is public, its name can be used by any function.
+
+In a class, members are by default private; in a struct, members are by default public.
+
+When designing a class hierarchy, we sometimes provide functions designed to be used by implementers of derived classes but not by the general user. For example, we may provide an (efficient)
+unchecked access function for derived class implementers and (safe) checked access for others. Declaring the unchecked version protected achieves that.
+
+```CPP
+class Buffer {
+public:
+char& operator[](int i); // checked access, user can make worry free access
+// ...
+protected:
+char& access(int i); // unchecked access , developer can make intelligent decisions
+// ...
+};
+```
+This prevents subtle errors that would otherwise occur when one derived class corrupts data belonging to other derived classes.
+
+Like a member, a base class can be declared private, protected, or public. For example:
+```CPP
+class X : public B { /* ... */ };
+class Y : protected B { /* ... */ };
+class Z : private B { /* ... */ };
+```
+
+The different access specifiers serve different design needs:
+• public derivation makes the derived class a subtype of its base. For example, X is a kind of B. This is the most common form of derivation.
+• private bases are most useful when defining a class by restricting the interface to a base so that stronger guarantees can be provided. For example, B is an implementation detail of Z.
+• protected bases are useful in class hierarchies in which further derivation is the norm. Like private derivation, protected derivation is used to represent implementation details.
+
+The access specifier for a base class can be left out. In that case, the base defaults to a private base for a class and a public base for a struct. For example:
+
+```CPP
+class XX : B { /* ... */ }; // B is a private base
+struct YY : B { /* ... */ }; // B is a public base
+```
+
+The access specifier for a base class controls the access to members of the base class and the conversion of pointers and references from the derived class type to the base class type. Consider a class D derived from a base class B:
+• If B is a private base, its public and protected members can be used only by member functions and friends of D. Only friends and members of D can convert a D∗ to a B∗.
+• If B is a protected base, its public and protected members can be used only by member functions and friends of D and by member functions and friends of classes derived from D. Only friends and members of D and friends and members of classes derived from D can convert a D∗ to a B∗.
+• If B is a public base, its public members can be used by any function. In addition, its protected members can be used by members and friends of D and members and friends of classes derived from D. Any function can convert a D∗ to a B∗.
+
+This basically restates the rules for member access. When designing a class, we choose access for bases in the same way as we do for members.
+
+**Multiple Inheritance and Access Control**
+TBD
+
+**using-Declarations and Access Control**
+
+A using-declaration cannot be used to gain access to additional information. It is simply a mechanism for making accessible information more convenient to use. On the other hand, once access is available, it can be granted to other users.
+
+```CPP
+class B {
+  private:
+    int a;
+  protected:
+    int b;
+  public:
+    int c;
+};
+class D : public B {
+public:
+  using B::a; // error : B::a is private
+  using B::b; // make B::b publicly available through D
+};
+```
+
+When a using-declaration is combined with private or protected derivation, it can be used to specify interfaces to some, but not all, of the facilities usually offered by a class. For example:
+
+```CPP
+class BB : private B { // give access to B::b and B::c, but not B::a
+public:
+  using B::b;
+  using B::c;
+};
+```
+A pointer to member cannot be assigned to a void∗ or any other ordinary pointer. A null pointer (e.g., nullptr) can be assigned to a pointer to member and then represents ‘‘no member.’’
+
+```CPP
+class Std_interface {
+public:
+  virtual void start() = 0;
+  virtual void suspend() = 0;
+  virtual void resume() = 0;
+  virtual void quit() = 0;
+  virtual void full_size() = 0;
+  virtual void small() = 0;
+  virtual ˜Std_interface() {}
+};
+```
+
+We can use a pointer to member to indirectly refer to a member of a class. Consider Std_interface. If I want to invoke suspend() for some object without mentioning suspend() directly,
+I need a pointer to member referring to Std_interface::suspend(). I also need a pointer or reference to the object I want to suspend. Consider a trivial example:
+
+```CPP
+using Pstd_mem = void (Std_interface::∗)(); // pointer-to-member type
+
+void f(Std_interface∗ p)
+{
+  Pstd_mem s = &Std_interface::suspend; // pointer to suspend()
+  p−>suspend(); //direct call
+  p−>∗s(); //call through pointer to member
+}
+```
+A pointer to member can be obtained by applying the address-of operator, &, to a fully qualified class member name, for example, &Std_interface::suspend. A variable of type ‘‘pointer to member of class X’’ is declared using a declarator of the form X::∗.
+
+Just like ordinary pointers to functions, pointers to member functions are used when we need to refer to a function without having to know its name.
 
 ### Class Hierarchies ###
 
