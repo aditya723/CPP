@@ -2998,9 +2998,94 @@ void f(Std_interface∗ p)
 ```
 A pointer to member can be obtained by applying the address-of operator, &, to a fully qualified class member name, for example, &Std_interface::suspend. A variable of type ‘‘pointer to member of class X’’ is declared using a declarator of the form X::∗.
 
-Just like ordinary pointers to functions, pointers to member functions are used when we need to refer to a function without having to know its name.
+Just like ordinary pointers to functions, pointers to member functions are used when we need to refer to a function without having to know its name. However, a pointer to member isn’t a pointer to a piece of memory the way a pointer to a variable or a pointer to a function is. It is more like an offset into a structure or an index into an array, but of course an implementation takes into account the differences between data members, virtual functions, nonvirtual
+functions, etc. When a pointer to member is combined with a pointer to an object of the right type, it yields something that identifies a particular member of a particular object.
+
+The p−>∗s() call can be represented graphically like this:
+
+<img width="616" height="140" alt="image" src="https://github.com/user-attachments/assets/1e9ccf42-595e-4137-b8db-570bba1f5734" />
+
+Because a pointer to a virtual member (s in this example) is a kind of offset, it does not depend on an object’s location in memory. A pointer to a virtual member can therefore be passed between different address spaces as long as the same object layout is used in both. Like pointers to ordinary functions, pointers to non-virtual member functions cannot be exchanged between address spaces. Note that the function invoked through the pointer to function can be virtual. For example,
+when we call suspend() through a pointer to function, we get the right suspend() for the object to which the pointer to function is applied. This is an essential aspect of pointers to functions.
+
+A static member isn’t associated with a particular object, so a pointer to a static member is simply an ordinary pointer.
+
+```CPP
+class Task {
+  // ...
+  static void schedule();
+};
+
+void (∗p)() = &Task::schedule; // OK
+void (Task::∗ pm)() = &Task::schedule; // error : ordinar y pointer assigned
+// to pointer to member
+```
+Naturally, the notion of pointer to member applies to data members and to member functions with arguments and return types. For example:
+```CPP
+struct C {
+  const char∗ val;
+  int i;
+  void print(int x) { cout << val << x << '\n'; }
+  int f1(int);
+  void f2();
+  C(const char∗ v) { val = v; }
+};
+
+using Pmfi = void (C::∗)(int); // pointer to member function of C taking an int
+using Pm = const char∗ C::∗; //pointer to char* data member of C
+
+void f(C& z1, C& z2)
+{
+  C∗ p = &z2;
+  Pmfi pf = &C::print;
+  Pm pm = &C::val;
+  z1.print(1);
+  (z1.∗pf)(2);
+  z1.∗pm = "nv1 ";
+  p−>∗pm = "nv2 ";
+  z2.print(3);
+  (p−>∗pf)(4);
+  pf = &C::f1; // error : retur n type mismatch
+  pf = &C::f2; // error : argument type mismatch
+  pm = &C::i; // error : type mismatch
+  pm = pf; // error : type mismatch
+}
+```
+The type of a pointer to function is checked just like any other type.
+
+We can safely assign a pointer to a member of a base class to a pointer to a member of a derived class, but not the other way around. This property is often called contravariance.
+
+```CPP
+class Text : public Std_interface {
+public:
+  void start();
+  void suspend();
+  // ...
+virtual void print();
+  private:
+    vector s;
+};
+void (Std_interface::∗ pmi)() = &Text::print; // error
+void (Text::∗pmt)() = &Std_interface::start; // OK
+```
+
+This contravariance rule appears to be the opposite of the rule that says we can assign a pointer to a derived class to a pointer to its base class. In fact, both rules exist to preserve the fundamental
+guarantee that a pointer may never point to an object that doesn’t at least have the properties that the pointer promises. In this case, Std_interface::∗ can be applied to any Std_interface, and most
+such objects presumably are not of type Text. Consequently, they do not have the member Text::print with which we tried to initialize pmi. By refusing the initialization, the compiler saves us from a run-time error.
 
 ### Class Hierarchies ###
+
+The logical conclusion of this line of thought is a system represented to users as a hierarchy of abstract classes and implemented by a classical hierarchy. In other words:
+• Use abstract classes to support interface inheritance.
+• Use base classes with implementations of virtual functions to support implementation inheritance.
+
+_factory_: is class which is responsible to create object of class, and its functions are (somewhat misleadingly) sometimes called virtual constructors.
+
+inheritance aims to provide one of two benefits:
+• Shared interfaces: leading to less replication of code using classes and making such code more uniform. This is often called run-time polymorphism or interface inheritance.
+• Shared implementation: leading to less code and more uniform implementation code. This is often called implementation inheritance.
+
+
 
 ### Run-Time Type Information ###
 
